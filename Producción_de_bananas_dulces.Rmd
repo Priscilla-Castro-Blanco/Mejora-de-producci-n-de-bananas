@@ -1,0 +1,275 @@
+---
+title: "Producción_de_bananas_dulces"
+author: "Priscilla Castro Blanco"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+Instalación de paquetes
+```{r}
+#install.packages("dplyr")
+library("dplyr")
+```
+
+```{r}
+library("ggplot2")
+```
+
+
+```{r}
+#install.packages("corrplot")
+library("corrplot")
+```
+```{r}
+#install.packages("magrittr")
+library("magrittr")
+```
+
+
+```{r}
+#install.packages("skimr")
+#library("skimr")
+```
+
+# Análisis para determinar maneras de incrementar la dulzura en las bananas
+
+### Objetivo
+Para este proyecto de análisis de datos, analicé las variables que se correlacionan con el “dulzor” de los bananos cosechados, con la intención de encontrar datos para mejorar la producción de bananos con mayor dulzor y, de ser posible, en un menor tiempo.
+
+
+# 1. Ingestión de datos
+Seleccionamos los datos a utilizar y realizamos su correcta ingestión.
+
+```{r}
+banana <- read.csv('banana_quality.csv')
+
+head(banana)
+```
+
+Podemos observar que existen 8 variables distintas en este set de datos. Variables como el tamaño, el peso, la dulzura (que es la variable que queremos mejorar), la suavidad, el tiempo de cosecha, la madurez, la acidez y la calidad. 
+
+Antes de realizar los análisis de distribución, nos aseguramos que estamos trabajando con un "data frame".
+
+```{r}
+print(class(banana))
+```
+# 2. Análisis de Distribución. 
+
+A continuación vamos a analizar la distribución de los datos. Lo haremos al realizar histogramas y al evaluar la normalidad de las variables numéricas en el conjunto de dato y su distribución a través d la prueba shapiro. 
+
+
+```{r}
+set.seed(10)
+banana_norm <- rnorm(100) # Creamos una variable normal con 100 valores
+banana.test <- shapiro.test(banana_norm)
+print(banana.test)
+```
+Obtenemos una p > 0.05, lo que significa que existe una distribución normal para los datos aleatorios escogidos.
+
+```{r}
+banana2 <- runif(100) # Creamos una variable con distribución uniforme (no normal) con 100 valores
+banana2.test <- shapiro.test(banana2)
+print(banana2.test)
+```
+p < 0.05 → Distribución no normal, como es de esperarse, para los valores escogidos con distribución uniforme.
+
+Con estas dos pruebas podemos empezar a pensar que los datos poseen una distribución uniforme. Crearemos histogramas de las variables que creemos pueden tener correlación con la dulzura de la planta. 
+
+Para esto decidimos tomar las variables: "Sweetness", "Size", "Weight", "Softness", "HarvestTime" y "Ripeness".
+
+Para estas variables después de observar su normalidad a través de histogramas, determinaremos la correlación entre sí con una prueba de Pearson, con la finalidad de observar si es posible encontrar en dónde podemos realizar cambios al sistema de producción para producir bananas más dulces. 
+
+### Creación de los histogramas
+
+```{r}
+names(banana)
+```
+
+```{r}
+hist(banana$Sweetness)
+```
+```{r}
+hist(banana$Size)
+```
+
+```{r}
+hist(banana$Weight)
+```
+
+```{r}
+hist(banana$Softness)
+```
+
+```{r}
+hist(banana$HarvestTime)
+```
+
+```{r}
+hist(banana$Ripeness)
+```
+
+### Observaciones. 
+
+Se puede observar que para los 6 histogramas generados, existe una distribución normal de los valores entre -5 y 5 en la frecuencia. De esta manera sabemos que los podemos relacionar entre sí al realizar una prueba de pearson.
+
+# 3. Correlación de Variables: 
+
+Calculamos seguidamente la correlación entre las variables y observamos la naturaleza de esta correlación. 
+El objetivo es seleccionar las variables que presenten una correlación significativa con la variable objetivo (dulzura de la banana). 
+
+
+```{r}
+data_numerica <- banana %>% select_if(is.numeric)
+correlacion <- cor(data_numerica, method = "pearson")
+correlacion
+```
+
+Ahoragraficamos la correlación que nos permite observar de manera más fácil las correlaciones entre las variables. 
+
+```{r}
+cor.data <- round(cor(data_numerica), 2)
+corrplot(cor.data, method="number")
+
+```
+Si tomamos en cuenta que 
+→ 1 significa correlación positiva perfecta
+→ -1 significa correlación negativa perfecta
+→ 0 sugnifica ausencia de correlación lineal entre las variables
+
+Podemos observar que 
+1. Entre el tamaño "Size" y el tiempo de cosecha "HarvestTime" existe una correlación positiva, sugieriendo que entre mayor tiempo de cosecha, mayor será el tamaño. Esto tiene sentido ya que si se deja el cultivo por mayor tiempo, se podría esperar que este crezca más durante ese tiempo extra, hasta llegar a su tamaño máximo.
+
+2. Se observa una correlación media positiva entre el peso "Weight" y la dulzura del banano "Sweetness". Esto sugiere, hasta cierto punto, que entre mayor sea el tamaño, mayor será su dulzura.
+
+3. La correlación entre la dulzura "Sweetness" y el tamaño "Size" de la fruta sugiere que entre mayor sea el tamaño, menor será su dulzura. Esto tiene sentido ya que la concentración de azúcares en la fruta será menor. 
+
+4. Al revisar la correlación existente entre el tamaño de la fruta "Size" y su peso "Weight", se podría esperar una correlación positiva; sin embargo la prueba de correlación muestra que apenas están correlacionados negativamente. 
+
+**Otras correlaciones observadas.**
+
+5. Existe una correlación positiva moderada entre el peso "Weight" y la acidez "Acidity" de igual manera. Esto puede ser investigado más a fondo ya que la respuesta no es obvia, y podría tener un impacto en la dulzura de la fruta. 
+
+6. Por último, existe cierta correlación negativa entre la acidez "Acidity" y su madurez "Ripeness". Esto tiene sentido ya que al madurar una fruta, se producen compuestos más dulces y se descomponen los compuestos más ácidos. 
+
+Cabe destacar que la correlación no implica causalidad y existen muchos otros factores que no estamos tomando en cuenta. Para determinar si existe alguna correlación y causalidad para algún conjunto específico, se debe corroborar con experimentos e hipótesis. 
+
+# 4.Interpretación de los resultados: 
+
+Para esta parte, podemos observar que las variables de "Sweetness", "Size", "Weight", "Softness", "HarvestTime" y "Ripeness" poseen una distribución normal. 
+Además, al realizar la prueba de Pearson, observamos que la dulzura de la fruta "Sweetness" posee una correlación positiva (hasta cierto punto) con su peso "Weight", por lo que se observarán a fondo estos datos para determinar si deben ser corregidos de alguna manera, y sacar posibles conclusiones de cómo se puede mejorar el proceso para aumentar la dulzura de las bananas producidas. 
+
+
+```{r}
+summary(banana)
+```
+Según hemos visto en el cuadro de correlación con el método de Pearson, la dulzura de la banana podría estar relacionada hasta cierto punto con su peso, por lo que observaremos los datos estadísticos de estas dos variables, y determinaremos si es necesario limitar la cantidad de datos por ejemplo, para obtener una correlación más alta. 
+
+#### Datos estadísticos de "Sweetness".
+```{r}
+summary(banana$Sweetness)
+```
+
+```{r}
+var(banana$Sweetness)
+```
+Se observa que el dato máximo es de 7.5394, y el tercer cuartil empieza en el dato 0.3110, por lo que existe gran diferencia. Además, su varianza es de 3.8, lo que denota que los datos no están tan lejanos entre sí, pero tampoco tan cerca, por lo que se limitarán los datos hasta el tercer cuartil buscando mejorar la varianza y la muestra de datos que se posee. 
+
+#### Datos estadísticos de "Weight".
+
+```{r}
+summary(banana$Weight)
+```
+
+```{r}
+var(banana$Weight)
+```
+Como se observa, nuevamente el máximo (5.6797) está lejos del tercer cuartil (0.7755) y además la varianza es de 4.0 lo que indica que los datos no están muy dispersos, pero tampoco están muy agrupados cerca de la media.Por esta razón se limitará este set de datos de igual manera al tercer cuartil. 
+
+## 5 Selección de Variables Relevantes: 
+
+Se realiza la selección por cuantiles para ambas variables, con el eobjetivo de obtener un dataset más limpio y relevante. 
+
+
+```{r}
+
+# Calcular el cuantil del 75% y 25% para Sweetness
+cuantil_sweetness1 <- quantile(banana$Sweetness, 0.25)
+cuantil_sweetness2 <- quantile(banana$Sweetness, 0.75)
+
+# Filtrar los datos por debajo del cuantil del 75%
+datos_filtrados_sweet <- banana$Sweetness[cuantil_sweetness1 < banana$Sweetness & banana$Sweetness < cuantil_sweetness2]
+
+# Obtener el summary de los datos filtrados
+summary(datos_filtrados_sweet)
+
+var_cuantil_sweet <- var(datos_filtrados_sweet)
+var_cuantil_sweet
+
+```
+```{r}
+hist(datos_filtrados_sweet)
+```
+De esta manera la varianza es ahora de 0.4 por lo que los datos se encuentran mucho mas cerca entre si. 
+
+
+Realizamos lo mismo para "Weight" esperando obtener un resultado similar.
+
+
+```{r}
+# Calcular el cuantil del 75% para Weight
+cuantil_weight1 <- quantile(banana$Weight, 0.25)
+cuantil_weight2 <- quantile(banana$Weight, 0.75)
+
+# Filtrar los datos por debajo del cuantil del 75%
+datos_filtrados_weight <- banana$Weight[cuantil_weight1 < banana$Weight & banana$Weight < cuantil_weight2]
+
+# Obtener el summary de los datos filtrados
+summary(datos_filtrados_weight)
+
+var_cuantil_75ht <- var(datos_filtrados_weight)
+var_cuantil_75ht
+
+```
+```{r}
+hist(datos_filtrados_weight)
+```
+Por lo tanto, se observa que efectivamente de esta manera la varianza denota una mayor cercania entre los datos. 
+
+
+Ahora realizaremos un gráfico de dispersión con los datos filtrados y no filtrados de "Weight" y de "Sweetness", para verificar la relación existente entre estas variables. 
+
+### Datos no filtrados
+
+```{r}
+plot(banana$Sweetness, banana$Weight, xlab="Dulzura", ylab="Peso", main="Relación entre dulzura y peso de la totalidad de datos")
+```
+
+### Datos filtrados
+
+```{r}
+x_min <- -7 
+x_max <- 8
+y_min <- -8
+y_max <- 6
+
+
+plot(datos_filtrados_sweet, datos_filtrados_weight, xlab="Dulzura", ylab="Peso", main="Relación entre dulzura y peso para el cuartil 75", xlim = c(x_min, x_max), ylim = c(y_min, y_max))
+```
+De esta manera podemos observar que la relación entre ambas variables ha sido delimitada según el gráfico de dispersiones, por lo que se pueden utilizar estos datos para ya sea predecir la dulzura de los bananos en relación a su peso (se debería desarrollar un algoritmo) o desarrollar pruebas que puedan aumentar la dulzura de la fruta al realizar cambios en su peso. 
+
+
+# 6 Conclusiones:
+
+1. Existe una correlación media entre la dulzura y el peso de la fruta de un 0.42, lo que sugiere que se puede indicar hasta cierto punto la dulzura que la fruta obtendrá según su peso. 
+2. No existe otra variable aparte del peso que posea una relación significativa con la dulzura (variable objetivo) de la fruta según el método de Pearson.
+3. Aunque existe correlación media entre la dulzura y el peso de la banana, esto no necesariamente significa causalidad, por lo que se debe explorar más a fondo esta correlación. Por esta razón se recomienda desarrollar experimentos de procesos para cambiar el peso de la fruta y de esta manera determinar si se generan los cambios deseados en la dulzura de la fruta. 
+
+
+
+
